@@ -7,16 +7,33 @@ import (
 	"time"
 	"path/filepath"
 	"flag"
+	"strings"
 )
 
-func execCommand(command string) {
-	err := exec.Command("bash", "-c", command).Run()
+func execCommand(command string) string {
+	output, err := exec.Command("bash", "-c", command).Output()
 	if err != nil {
 		fmt.Println("Command '", command, "' returned error:", err)
 	}
+
+	return string(output)
 }
 
-func listenForEvents(inputDeviceChannel chan int, path string, size int) {
+func listenForAudioSource(inputChannel chan int, audioSources []string) {
+	for {
+		output := execCommand("pacmd list-sink-inputs")
+		for _, audioSource := range audioSources {
+			if strings.Contains(output, audioSource) {
+				inputChannel <- 1
+			}
+		}
+
+		// This check doesn't need to happen at least once per minute.
+		time.Sleep(time.Second * 1)
+	}
+}
+
+func listenForEvents(inputChannel chan int, path string, size int) {
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Println(err)
@@ -31,7 +48,7 @@ func listenForEvents(inputDeviceChannel chan int, path string, size int) {
 			continue
 		}
 
-		inputDeviceChannel <- 1
+		inputChannel <- 1
 	}
 }
 
@@ -41,7 +58,7 @@ func main() {
 	flag.Parse()
 
 
-	inputDeviceChannel := make(chan int)
+	inputChannel := make(chan int)
 	// Add all devices under /dev/input/by-id because these seem to only list
 	// the input devices I'm looking for. Maybe this should look for "mouse" or
 	// "keyboard" as well? Maybe make this a cli flag?
@@ -50,16 +67,24 @@ func main() {
 	fmt.Println("Listening to the following input devices:")
 	for _, path := range paths {
 		fmt.Println("-", path)
-		go listenForEvents(inputDeviceChannel, path, 24)
+		go listenForEvents(inputChannel, path, 24)
 	}
 
+	audioSources := []string{
+		`application.name = "Chromium"`,
+	}
+	fmt.Println("Listening for the following audio sources:")
+	for _, audioSource := range audioSources {
+		fmt.Println("-", audioSource)
+	}
+	go listenForAudioSource(inputChannel, audioSources)
 
 	fmt.Println("Starting wait/lock loop...")
 	waitTime := time.Duration(*waitTimePtr)
 	timeout := time.NewTimer(time.Second * waitTime)
 	for {
 		select {
-		case <- inputDeviceChannel:
+		case <- inputChannel:
 			timeout.Reset(time.Second * waitTime)
 		case <- timeout.C:
 			// lock screen
