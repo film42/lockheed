@@ -97,7 +97,8 @@ func main() {
 	notifyTimePtr := flag.Uint("notify", 30, "Seconds before locking when a notification is sent.")
 	suspendCommandPtr := flag.String("suspender", "systemctl suspend", "Command for suspending computer.")
 	suspendTimePtr := flag.Uint("suspend", 15, "Minutes of idle time before suspending.")
-	disableSuspendWhileOnVPNPtr := flag.Bool("disable-suspend-while-on-vpn", true, "Don't engage suspend if we're conected to a VPN.")
+	suspendDisabledPtr := flag.Bool("suspend-disabled", false, "Don't over suspend.")
+	suspendDisabledWhileOnVPNPtr := flag.Bool("suspend-disabled-while-on-vpn", true, "Don't engage suspend if we're conected to a VPN.")
 	flag.Parse()
 
 	inputChannel := make(chan int)
@@ -117,7 +118,12 @@ func main() {
 	fmt.Println("Timer settings:")
 	fmt.Println("- Notify after", notifyTime)
 	fmt.Println("- Lock after", lockTime)
-	fmt.Println("- Suspend after", suspendTime)
+	if *suspendDisabledPtr {
+		fmt.Println("- Suspend disabled: true")
+	} else {
+		fmt.Println("- Suspend after", suspendTime)
+		fmt.Println("- Suspend disabled while connected to VPN:", *suspendDisabledWhileOnVPNPtr)
+	}
 
 	fmt.Println("Starting wait/lock/notify/suspend loop...")
 	for {
@@ -147,9 +153,12 @@ func main() {
 			go execCommandAndReport(*lockCommandPtr, lockFinishedChannel)
 		case <- suspendTimer.C:
 			// Suspend timer has fired.
+			if *suspendDisabledPtr {
+				continue
+			}
 
 			// If we're connected to a VPN then don't suspend.
-			if *disableSuspendWhileOnVPNPtr && isConnectedToVPN() {
+			if *suspendDisabledWhileOnVPNPtr && isConnectedToVPN() {
 				fmt.Println("Skipping suspend because VPN is connected")
 				continue
 			}
