@@ -1,7 +1,9 @@
 Lockheed
-====
+========
 
-A really simple autolock app.
+A really simple auto-lock/ auto-suspend app that's really similar to `xautolock`, but has a bit more built in:
+- Disable lock if chromium is playing sound (first cut at checking for html5 video playback).
+- Prevent suspend if an OpenVPN connection is established.
 
 ```
 $ ./lockheed --help
