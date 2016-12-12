@@ -7,7 +7,7 @@ A really simple autolock app.
 $ ./lockheed --help
 Usage of ./lockheed:
   -locker string
-        Command to execute your screen lock. (default "pgrep -f i3lock && i3lock")
+        Command to execute your screen lock. (default "pgrep -f i3lock || i3lock")
   -notifier string
         Command to execute your screen lock. (default "notify-send -u critical -t 10000 -- 'Locking screen soon.'")
   -notify uint

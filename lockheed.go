@@ -91,7 +91,7 @@ func spawnForAudioSources(inputChannel chan int) {
 }
 
 func main() {
-	lockCommandPtr := flag.String("locker", "pgrep -f i3lock && i3lock", "Command to execute your screen lock.")
+	lockCommandPtr := flag.String("locker", "pgrep -f i3lock || i3lock", "Command to execute your screen lock.")
 	lockTimePtr := flag.Uint("time", 5, "Minutes of idle time before locking.")
 	notifierCommandPtr := flag.String("notifier", "notify-send -u critical -t 10000 -- 'Locking screen soon.'", "Command to execute your screen lock.")
 	notifyTimePtr := flag.Uint("notify", 30, "Seconds before locking when a notification is sent.")
